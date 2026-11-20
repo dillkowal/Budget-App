@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Budget">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#2f6b4f">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Monthly Budget</title>
+<style>
+:root{
+  --bg:#f4f6f4; --card:#fff; --ink:#1d2621; --muted:#66736b; --line:#e2e7e3;
+  --accent:#2f6b4f; --accent-soft:#e3efe8; --warn:#b4541d; --bad:#c0392b; --bad-soft:#fbe9e7;
+  --good:#2f6b4f; --bar:#dfe6e1; --shadow:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121614;--card:#1b211e;--ink:#e6ece8;--muted:#93a199;--line:#2a332e;
+    --accent:#5fb48a;--accent-soft:#1f3329;--bad:#ef6b5c;--bad-soft:#3a201d;--bar:#2a332e;--warn:#e39a5f;
+    --shadow:none}
+}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(16px,env(safe-area-inset-bottom));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:20px;margin:0;flex:1}
+.monthnav{display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px}
+.monthnav button{border:0;background:none;padding:6px 10px;border-radius:7px;cursor:pointer;font-size:16px}
+.monthnav button:hover{background:var(--accent-soft)}
+.monthnav span{min-width:130px;text-align:center;font-weight:600}
+.iconbtn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 12px;cursor:pointer}
+.iconbtn:hover{border-color:var(--accent)}
+.sync{font-size:12px;color:var(--muted);width:100%;text-align:right;margin-top:-8px}
+.sync.warn{color:var(--warn)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stat{padding:12px 14px}
+.stat .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.stat .val{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .sub{font-size:12px;color:var(--muted)}
+.neg{color:var(--bad)!important}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}
+h2{font-size:15px;margin:0 0 10px}
+/* add form */
+.typetoggle{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:10px}
+.typetoggle button{border:0;background:none;padding:6px 14px;cursor:pointer}
+.typetoggle button.on{background:var(--accent);color:#fff}
+.form{display:grid;grid-template-columns:130px 1fr;gap:8px}
+.form .full{grid-column:1/-1}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.field input,.field select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg)}
+.field input:focus,.field select:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.amt{position:relative}
+.amt span{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.amt input{padding-left:22px;font-size:18px;font-weight:600}
+.formbtns{display:flex;gap:8px;margin-top:4px}
+.primary{background:var(--accent);color:#fff;border:0;border-radius:9px;padding:10px 16px;font-weight:600;cursor:pointer;flex:1}
+.primary:hover{filter:brightness(1.07)}
+.ghost{background:none;border:1px solid var(--line);border-radius:9px;padding:10px 14px;cursor:pointer}
+.err{color:var(--bad);font-size:13px;min-height:18px;margin-top:4px}
+.editing{outline:2px solid var(--warn);outline-offset:2px}
+/* categories */
+.group{margin-top:14px}
+.group h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 6px;display:flex;justify-content:space-between}
+.cat{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid transparent}
+.cat:hover{background:var(--accent-soft)}
+.cat.sel{border-color:var(--accent);background:var(--accent-soft)}
+.cat .nm{font-weight:600}
+.cat .nm small{font-weight:400;color:var(--muted);margin-left:6px}
+.cat .nums{text-align:right;font-variant-numeric:tabular-nums;font-size:14px}
+.cat .left{font-size:12px;color:var(--muted);text-align:right}
+.bar{grid-column:1/-1;height:6px;background:var(--bar);border-radius:4px;overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.bar i.over{background:var(--bad)}
+.paidbtn{font-size:11px;border:1px solid var(--line);background:var(--card);border-radius:6px;padding:1px 7px;margin-left:6px;cursor:pointer;color:var(--muted)}
+.paidbtn:hover{border-color:var(--accent);color:var(--accent)}
+.check{color:var(--good);font-size:12px;margin-left:6px}
+/* list */
+.listhead{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.listhead h2{margin:0;flex:1}
+.search{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);width:180px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);border-radius:20px;padding:3px 10px;font-size:13px;font-weight:600}
+.chip button{border:0;background:none;cursor:pointer;color:inherit;padding:0;font-size:15px;line-height:1}
+.day{font-size:12px;color:var(--muted);margin:12px 0 4px;font-weight:600}
+.tx{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px solid var(--line)}
+.tx:last-child{border-bottom:0}
+.tx .d{font-weight:500}
+.tx .c{font-size:12px;color:var(--muted)}
+.tx .a{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.tx .a.inc{color:var(--good)}
+.tx .acts{display:flex;gap:2px;opacity:.55}
+.tx:hover .acts{opacity:1}
+.tx .acts button{border:0;background:none;cursor:pointer;padding:4px 6px;border-radius:6px;color:var(--muted)}
+.tx .acts button:hover{background:var(--accent-soft);color:var(--ink)}
+.empty{color:var(--muted);text-align:center;padding:28px 10px}
+.foot{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+/* modal */
+dialog{border:0;border-radius:14px;padding:0;max-width:720px;width:calc(100% - 24px);background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+.mhead{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.mbody{padding:14px 18px;max-height:65vh;overflow:auto}
+.mfoot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+.crow{display:grid;grid-template-columns:1.1fr 1.4fr 90px 110px 32px;gap:6px;margin-bottom:6px;align-items:center}
+.crow input,.crow select{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.crow.h{font-size:12px;color:var(--muted)}
+.crow button{border:0;background:none;cursor:pointer;color:var(--muted);font-size:16px}
+.crow button:hover{color:var(--bad)}
+.inline{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.inline input{width:110px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+/* backup */
+.nag{background:var(--bad-soft);color:var(--ink);border-radius:12px;padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.nag button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:7px 12px;font-weight:600;cursor:pointer}
+.bnote{font-size:13px;color:var(--muted)}
+.bnote.warn{color:var(--warn)}
+.bbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+/* toast */
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 14px;border-radius:10px;display:none;gap:14px;align-items:center;z-index:10;font-size:14px}
+.toast.show{display:flex}
+.toast button{background:none;border:0;color:#8fd4b0;font-weight:700;cursor:pointer}
+@media (max-width:820px){
+  .grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .crow{grid-template-columns:1fr 1fr 70px 90px 28px}
+}
+@media (max-width:520px){
+  .crow{grid-template-columns:1fr 70px 28px}
+  .crow .det,.crow .pc{display:none}
+  .search{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Monthly Budget</h1>
+    <div class="monthnav">
+      <button id="prevM" aria-label="Previous month">‹</button>
+      <span id="monthLbl">—</span>
+      <button id="nextM" aria-label="Next month">›</button>
+    </div>
+    <button class="iconbtn" id="openSettings">Edit categories</button>
+    <div class="sync" id="sync">Loading…</div>
+  </header>
+
+  <div class="nag" id="backupNag" hidden><span>It's been a while since your last backup.</span><button type="button" id="nagBackup">Back up now</button></div>
+
+  <div class="stats">
+    <div class="card stat"><div class="lbl">Paychecks in</div><div class="val" id="sIncome">$0</div><div class="sub" id="sIncomeSub"></div></div>
+    <div class="card stat"><div class="lbl">Spent</div><div class="val" id="sSpent">$0</div><div class="sub" id="sSpentSub"></div></div>
+    <div class="card stat"><div class="lbl">Left in budget</div><div class="val" id="sLeft">$0</div><div class="sub" id="sLeftSub"></div></div>
+    <div class="card stat"><div class="lbl">Cash on hand</div><div class="val" id="sCash">$0</div><div class="sub">paychecks in − spent</div></div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="card" id="formCard">
+        <h2 id="formTitle">Log a purchase</h2>
+        <div class="typetoggle" role="group">
+          <button type="button" data-type="expense" class="on">Spent</button>
+          <button type="button" data-type="income">Paycheck / income</button>
+        </div>
+        <form id="txForm" autocomplete="off">
+          <div class="form">
+            <div class="field amt"><label for="fAmt">Amount</label><div class="amt"><span>$</span><input id="fAmt" inputmode="decimal" placeholder="0.00"></div></div>
+            <div class="field"><label for="fDesc" id="fDescLbl">What was it for?</label><input id="fDesc" list="descList" placeholder="e.g. Kroger run, Spotify, gas at Speedway"></div>
+            <div class="field" id="catField"><label for="fCat">Category</label><select id="fCat"></select></div>
+            <div class="field"><label for="fDate">Date</label><input id="fDate" type="date"></div>
+          </div>
+          <datalist id="descList"></datalist>
+          <div class="err" id="fErr"></div>
+          <div class="formbtns">
+            <button class="primary" id="fSubmit" type="submit">Add</button>
+            <button class="ghost" id="fCancel" type="button" hidden>Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h2>Categories <span style="font-weight:400;color:var(--muted);font-size:13px">— tap one to see its purchases</span></h2>
+        <div id="cats"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="listhead">
+        <h2>This month's entries</h2>
+        <span id="filterChip"></span>
+        <input class="search" id="search" placeholder="Search…">
+      </div>
+      <div id="list"></div>
+      <div class="foot"><span id="listCount"></span><span id="listTotal"></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:0">
+  <div class="card">
+    <h2>Backup &amp; restore</h2>
+    <div class="bnote" style="margin-bottom:6px">Your entries are saved only on this phone. Save a backup to iCloud Drive or Google Drive every couple of weeks — if you clear your browser data or get a new phone, restore from it.</div>
+    <div class="bnote" id="backupNote"></div>
+    <div class="bbtns">
+      <button class="primary" style="flex:0 0 auto" type="button" id="doBackup">Save backup</button>
+      <button class="ghost" type="button" id="doRestore">Restore from backup</button>
+      <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+    </div>
+    <div class="err" id="restoreErr"></div>
+  </div>
+</div>
+
+<dialog id="settings">
+  <div class="mhead"><strong>Categories &amp; budget</strong><button class="ghost" id="closeSettings" style="padding:4px 10px">✕</button></div>
+  <div class="mbody">
+    <div class="inline"><label>Expected paycheck amount <input id="setPay" inputmode="decimal"></label><label>Paychecks per month <input id="setPayN" inputmode="numeric" style="width:60px"></label></div>
+    <div class="crow h"><span>Name</span><span class="det">Details</span><span>Budget</span><span class="pc">Paid from</span><span></span></div>
+    <div id="setRows"></div>
+    <button class="ghost" id="addCat" style="margin-top:6px">+ Add category</button>
+    <div style="margin-top:12px;font-size:13px;color:var(--muted)" id="setTotal"></div>
+  </div>
+  <div class="mfoot"><button class="ghost" id="cancelSettings">Cancel</button><button class="primary" style="flex:0" id="saveSettings">Save</button></div>
+</dialog>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastUndo">Undo</button></div>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2));
+const r2 = n => Math.round(n*100)/100;
+const money = (n, cents) => {
+  n = r2(n||0); const neg = n<0; const a = Math.abs(n);
+  const s = a.toLocaleString('en-US',{minimumFractionDigits:(cents||!Number.isInteger(a))?2:0,maximumFractionDigits:2});
+  return (neg?'−$':'$')+s;
+};
+const pad = n => String(n).padStart(2,'0');
+const todayStr = () => { const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+const monthKeyOf = d => d.slice(0,7);
+const monthLabel = k => { const [y,m]=k.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}); };
+const shiftMonth = (k,dx) => { const [y,m]=k.split('-').map(Number); const d=new Date(y,m-1+dx,1); return d.getFullYear()+'-'+pad(d.getMonth()+1); };
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const PAY_LABEL = {"1":"1st paycheck","2":"2nd paycheck","both":"Split / either"};
+const DEFAULT_CFG = {
+  paycheck:1290, paychecksPerMonth:2,
+  cats:[
+    {id:"housing",name:"Housing",details:"Rent (water included)",budget:438,pay:"1"},
+    {id:"utilities",name:"Utilities",details:"Electric, gas",budget:125,pay:"1"},
+    {id:"transport",name:"Transportation",details:"Work, etc.",budget:150,pay:"1"},
+    {id:"grocery",name:"Grocery",details:"",budget:300,pay:"1"},
+    {id:"fastfood",name:"Fast Food",details:"",budget:50,pay:"1"},
+    {id:"subs",name:"Subscriptions",details:"",budget:59,pay:"1"},
+    {id:"savings",name:"Savings",details:"",budget:400,pay:"2"},
+    {id:"loans",name:"Loans",details:"",budget:500,pay:"2"},
+    {id:"spending",name:"Spending",details:"$129 from 1st, rest from 2nd",budget:250,pay:"both"},
+    {id:"litter",name:"Cat Litter",details:"",budget:9,pay:"2"},
+    {id:"internet",name:"Internet",details:"",budget:38,pay:"2"},
+    {id:"catfood",name:"Cat Food",details:"",budget:22,pay:"2"},
+    {id:"petins",name:"Pet Insurance",details:"",budget:51,pay:"2"},
+    {id:"carins",name:"Car Insurance",details:"",budget:188,pay:"both"}
+  ]
+};
+
+const S = { cfg: structuredClone(DEFAULT_CFG), month:{tx:[]}, monthKey: monthKeyOf(todayStr()),
+  type:'expense', editingId:null, filterCat:null, search:'', readOnly:false };
+
+/* ---------------- storage (this phone only) ---------------- */
+const KEY = 'budget:';
+let storageOK = true;
+function lsGet(k){ try { const v=localStorage.getItem(KEY+k); return v?JSON.parse(v):null; } catch(e){ storageOK=false; return null; } }
+function lsPut(k,v){
+  try { localStorage.setItem(KEY+k, JSON.stringify(v)); return true; }
+  catch(e){ toast("Couldn't save — this browser is blocking storage (private mode?)."); storageOK=false; return false; }
+}
+function setSync(msg, warn){ const el=$('sync'); el.textContent=msg; el.classList.toggle('warn',!!warn); }
+const store = {
+  mode:'local',
+  subCfg(cb){ cb(lsGet('cfg')); return ()=>{}; },
+  saveCfg(c){ lsPut('cfg',c); markDirty(); },
+  subMonth(k,cb){ cb(lsGet('m-'+k)); return ()=>{}; },
+  saveMonth(k,m){ lsPut('m-'+k,m); markDirty(); }
+};
+function markDirty(){ const meta=lsGet('meta')||{}; meta.changedAt=Date.now(); lsPut('meta',meta); updateBackupNote(); }
+
+function subscribeMonth(){
+  const key = S.monthKey;
+  store.subMonth(key, data => {
+    S.month = data && Array.isArray(data.tx) ? {tx:[...data.tx]} : {tx:[]};
+    render();
+  });
+}
+
+/* ---------------- backup / restore ---------------- */
+function allData(){
+  const out = { app:'monthly-budget', version:1, exportedAt:new Date().toISOString(), cfg:S.cfg, months:{} };
+  try {
+    for (let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if (k && k.startsWith(KEY+'m-')){ const m=lsGet(k.slice(KEY.length)); if (m && m.tx && m.tx.length) out.months[k.slice(KEY.length+2)] = m; }
+    }
+  } catch(e){}
+  return out;
+}
+function updateBackupNote(){
+  const meta=lsGet('meta')||{};
+  const el=$('backupNote'); if(!el) return;
+  if (!meta.backupAt){
+    el.textContent = meta.changedAt ? "You haven't saved a backup yet." : "No backup yet.";
+    el.className = meta.changedAt ? 'bnote warn' : 'bnote';
+    $('backupNag').hidden = !meta.changedAt;
+  } else {
+    const days = Math.floor((Date.now()-meta.backupAt)/86400000);
+    el.textContent = 'Last backup: '+(days<1?'today':days===1?'yesterday':days+' days ago');
+    const stale = days>=14 && (meta.changedAt||0)>meta.backupAt;
+    el.className = stale ? 'bnote warn' : 'bnote';
+    $('backupNag').hidden = !stale;
+  }
+}
+async function saveBackup(){
+  const data = JSON.stringify(allData(), null, 1);
+  const name = 'budget-backup-'+todayStr()+'.json';
+  const file = new File([data], name, {type:'application/json'});
+  let done=false;
+  try {
+    if (navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:'Budget backup'});
+      done=true;
+    }
+  } catch(e){ if (e && e.name==='AbortError') return; }
+  if (!done){
+    const url=URL.createObjectURL(file); const a=document.createElement('a');
+    a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  }
+  const meta=lsGet('meta')||{}; meta.backupAt=Date.now(); lsPut('meta',meta); updateBackupNote();
+  toast('Backup saved — keep it in iCloud Drive / Google Drive');
+}
+function restoreFrom(text){
+  let d; try { d=JSON.parse(text); } catch(e){ return "That file isn't a budget backup."; }
+  if (!d || d.app!=='monthly-budget' || !d.cfg || !d.months) return "That file isn't a budget backup.";
+  lsPut('cfg', d.cfg);
+  for (const [k,m] of Object.entries(d.months)){
+    // merge with anything already on this phone, by entry id
+    const cur = lsGet('m-'+k); const byId = {};
+    (cur&&cur.tx||[]).forEach(t=>byId[t.id]=t); (m.tx||[]).forEach(t=>byId[t.id]=t);
+    lsPut('m-'+k, {tx:Object.values(byId)});
+  }
+  const meta=lsGet('meta')||{}; meta.backupAt=Date.now(); lsPut('meta',meta);
+  S.cfg = d.cfg; subscribeMonth(); updateBackupNote();
+  return null;
+}
+
+function init(){
+  try { localStorage.setItem(KEY+'test','1'); localStorage.removeItem(KEY+'test'); } catch(e){ storageOK=false; }
+  if (!storageOK) setSync("This browser won't let the app save (private browsing?). Entries will be lost when you close it.", true);
+  else setSync('Saved on this phone only');
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+  const cfg = lsGet('cfg');
+  if (cfg && Array.isArray(cfg.cats)) S.cfg = cfg; else lsPut('cfg', S.cfg);
+  subscribeMonth();
+  updateBackupNote();
+}
+
+/* ---------------- mutations ---------------- */
+function saveMonth(){ render(); if(!S.readOnly) store.saveMonth(S.monthKey, S.month); }
+function addOrUpdateTx(t){
+  const key = monthKeyOf(t.date);
+  if (S.editingId){
+    const i = S.month.tx.findIndex(x=>x.id===S.editingId);
+    if (i>=0) S.month.tx.splice(i,1);
+  }
+  if (key===S.monthKey){ S.month.tx.push(t); saveMonth(); }
+  else {
+    // different month: save the current month (if edited), then append to the other one
+    if (S.editingId) saveMonth();
+    appendToOtherMonth(key, t);
+  }
+}
+function appendToOtherMonth(key, t){
+  let done=false;
+  const un = store.subMonth(key, (data, meta) => {
+    if (done) return;
+    if (store.mode==='db' && meta && meta.fromCache) return;
+    done=true; setTimeout(()=>un&&un(),0);
+    const m = data && Array.isArray(data.tx) ? {tx:[...data.tx]} : {tx:[]};
+    m.tx.push(t); store.saveMonth(key, m);
+    toast('Added to '+monthLabel(key));
+  }, ()=>toast("Couldn't save to "+monthLabel(key)));
+}
+
+let lastDeleted=null, toastTimer=null;
+function toast(msg, undo){
+  $('toastMsg').textContent=msg; $('toastUndo').hidden=!undo;
+  $('toast').classList.add('show'); clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>$('toast').classList.remove('show'), undo?6000:3500);
+}
+$('toastUndo').onclick=()=>{
+  if (!lastDeleted) return;
+  if (lastDeleted.month===S.monthKey){ S.month.tx.push(lastDeleted.t); saveMonth(); }
+  lastDeleted=null; $('toast').classList.remove('show');
+};
+
+/* ---------------- render ---------------- */
+function catById(id){ return S.cfg.cats.find(c=>c.id===id); }
+function render(){
+  $('monthLbl').textContent = monthLabel(S.monthKey);
+  const tx = S.month.tx;
+  const exp = tx.filter(t=>t.type!=='income'), inc = tx.filter(t=>t.type==='income');
+  const spentBy = {}; exp.forEach(t=>{ spentBy[t.cat]=(spentBy[t.cat]||0)+t.amount; });
+  const totalBudget = S.cfg.cats.reduce((a,c)=>a+(+c.budget||0),0);
+  const spent = exp.reduce((a,t)=>a+t.amount,0);
+  const income = inc.reduce((a,t)=>a+t.amount,0);
+  const planned = (+S.cfg.paycheck||0)*(+S.cfg.paychecksPerMonth||0);
+  const leftInBudget = S.cfg.cats.reduce((a,c)=>a+((+c.budget||0)-(spentBy[c.id]||0)),0);
+
+  $('sIncome').textContent = money(income);
+  $('sIncomeSub').textContent = inc.length+' of '+(S.cfg.paychecksPerMonth||0)+' logged · expected '+money(planned);
+  $('sSpent').textContent = money(spent);
+  $('sSpentSub').textContent = 'of '+money(totalBudget)+' budgeted';
+  $('sLeft').textContent = money(leftInBudget); $('sLeft').classList.toggle('neg', leftInBudget<0);
+  const over = S.cfg.cats.filter(c=>(spentBy[c.id]||0)>(+c.budget||0)+0.004).length;
+  $('sLeftSub').textContent = over ? over+' categor'+(over===1?'y':'ies')+' over budget' : 'all categories on track';
+  $('sLeftSub').classList.toggle('neg', !!over);
+  $('sCash').textContent = money(income-spent); $('sCash').classList.toggle('neg', income-spent<0);
+
+  // category select
+  const sel=$('fCat'), cur=sel.value;
+  sel.innerHTML = S.cfg.cats.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  if (cur && catById(cur)) sel.value=cur;
+
+  // categories list grouped by paycheck
+  const groups = {"1":[],"2":[],"both":[]};
+  S.cfg.cats.forEach(c=>(groups[c.pay]||groups.both).push(c));
+  const orphanSpent = exp.filter(t=>!catById(t.cat)).reduce((a,t)=>a+t.amount,0);
+  let html='';
+  for (const g of ["1","2","both"]){
+    if (!groups[g].length) continue;
+    const gb = groups[g].reduce((a,c)=>a+(+c.budget||0),0), gs = groups[g].reduce((a,c)=>a+(spentBy[c.id]||0),0);
+    html += `<div class="group"><h3><span>${PAY_LABEL[g]}</span><span>${money(gs)} / ${money(gb)}</span></h3>`;
+    for (const c of groups[g]){
+      const s = spentBy[c.id]||0, b=+c.budget||0, left=r2(b-s), pct=b?Math.min(100,s/b*100):(s?100:0);
+      const paid = s>0 && left<=0.004 && left>=-0.004;
+      html += `<div class="cat ${S.filterCat===c.id?'sel':''}" data-cat="${esc(c.id)}">
+        <div class="nm">${esc(c.name)}${c.details?`<small>${esc(c.details)}</small>`:''}${paid?'<span class="check">✓ paid</span>':''}${!s&&b?`<button class="paidbtn" data-paid="${esc(c.id)}" title="Log the full ${money(b)} as paid">Paid in full</button>`:''}</div>
+        <div class="nums">${money(s)} <span style="color:var(--muted)">/ ${money(b)}</span></div>
+        <div class="bar" style="grid-column:1/2"><i class="${s>b+0.004?'over':''}" style="width:${pct}%"></i></div>
+        <div class="left ${left<0?'neg':''}">${left<0?money(-left)+' over':money(left)+' left'}</div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  if (orphanSpent) html += `<div class="group"><h3><span>Other</span><span>${money(orphanSpent)}</span></h3><div class="cat ${S.filterCat==='__other'?'sel':''}" data-cat="__other"><div class="nm">Deleted categories</div><div class="nums">${money(orphanSpent)}</div></div></div>`;
+  $('cats').innerHTML = html;
+
+  // filter chip
+  const fc = S.filterCat==='__other' ? {name:'Other'} : S.filterCat==='__income' ? {name:'Income'} : catById(S.filterCat);
+  $('filterChip').innerHTML = fc ? `<span class="chip">${esc(fc.name)} <button id="clearFilter" aria-label="Clear filter">×</button></span>` : '';
+  if (fc) $('clearFilter').onclick=()=>{S.filterCat=null; render();};
+
+  // list
+  const q = S.search.trim().toLowerCase();
+  let rows = tx.filter(t=>{
+    if (S.filterCat==='__other') return t.type!=='income' && !catById(t.cat);
+    if (S.filterCat) return t.cat===S.filterCat && t.type!=='income';
+    return true;
+  }).filter(t=>!q || (t.desc||'').toLowerCase().includes(q) || ((catById(t.cat)||{}).name||'').toLowerCase().includes(q));
+  rows.sort((a,b)=> b.date.localeCompare(a.date) || (b.ts||0)-(a.ts||0));
+  let lh='', lastDay='';
+  for (const t of rows){
+    if (t.date!==lastDay){ lastDay=t.date; const [y,m,d]=t.date.split('-').map(Number);
+      lh += `<div class="day">${new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</div>`; }
+    const c = catById(t.cat);
+    const isInc = t.type==='income';
+    lh += `<div class="tx ${S.editingId===t.id?'editing':''}">
+      <div><div class="d">${esc(t.desc)}</div><div class="c">${isInc?'Income':esc(c?c.name:'Deleted category')}</div></div>
+      <div class="a ${isInc?'inc':''}">${isInc?'+':''}${money(t.amount,true)}</div>
+      <div class="acts"><button data-edit="${esc(t.id)}" title="Edit">✎</button><button data-del="${esc(t.id)}" title="Delete">🗑</button></div>
+    </div>`;
+  }
+  $('list').innerHTML = lh || `<div class="empty">${tx.length?'Nothing matches.':'No entries yet for '+monthLabel(S.monthKey)+'.<br>Log your first purchase on the left.'}</div>`;
+  const shownExp = rows.filter(t=>t.type!=='income').reduce((a,t)=>a+t.amount,0);
+  $('listCount').textContent = rows.length+' entr'+(rows.length===1?'y':'ies');
+  $('listTotal').textContent = 'Spent: '+money(shownExp,true);
+
+  // autocomplete from past descriptions
+  const seen=[...new Set(tx.map(t=>t.desc).filter(Boolean))].slice(0,60);
+  $('descList').innerHTML = seen.map(d=>`<option value="${esc(d)}">`).join('');
+}
+
+/* ---------------- form ---------------- */
+function setType(t){
+  S.type=t;
+  document.querySelectorAll('.typetoggle button').forEach(b=>b.classList.toggle('on', b.dataset.type===t));
+  $('catField').style.visibility = t==='income'?'hidden':'visible';
+  $('fDescLbl').textContent = t==='income' ? 'Which paycheck / source?' : 'What was it for?';
+  $('fDesc').placeholder = t==='income' ? 'e.g. 1st paycheck' : 'e.g. Kroger run, Spotify, gas at Speedway';
+  if (!S.editingId) $('formTitle').textContent = t==='income' ? 'Log a paycheck' : 'Log a purchase';
+}
+document.querySelectorAll('.typetoggle button').forEach(b=>b.onclick=()=>setType(b.dataset.type));
+$('fDate').value = todayStr();
+
+function resetForm(){
+  S.editingId=null; $('fAmt').value=''; $('fDesc').value=''; $('fErr').textContent='';
+  $('fSubmit').textContent='Add'; $('fCancel').hidden=true; $('formCard').classList.remove('editing');
+  setType(S.type);
+}
+$('fCancel').onclick=()=>{ resetForm(); render(); };
+
+$('txForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  if (S.readOnly){ $('fErr').textContent="This budget is read-only for you."; return; }
+  const amount = r2(parseFloat(($('fAmt').value||'').replace(/[$,\s]/g,'')));
+  const desc = $('fDesc').value.trim();
+  const date = $('fDate').value || todayStr();
+  if (!(amount>0)){ $('fErr').textContent='Enter an amount above $0.'; $('fAmt').focus(); return; }
+  if (!desc){ $('fErr').textContent= S.type==='income' ? 'Add a note (e.g. 1st paycheck).' : 'Add what it was for so you remember later.'; $('fDesc').focus(); return; }
+  const t = { id: S.editingId || uid(), type:S.type, amount, desc, date, ts: Date.now() };
+  if (S.type!=='income') t.cat = $('fCat').value;
+  const wasEditing = !!S.editingId;
+  addOrUpdateTx(t);
+  resetForm(); render();
+  if (!wasEditing) toast((t.type==='income'?'Logged ':'Logged ')+money(amount,true)+' — '+desc);
+  $('fAmt').focus();
+});
+
+/* list / category clicks */
+$('list').addEventListener('click', e=>{
+  const ed=e.target.closest('[data-edit]'), dl=e.target.closest('[data-del]');
+  if (ed){
+    const t=S.month.tx.find(x=>x.id===ed.dataset.edit); if(!t) return;
+    S.editingId=t.id; setType(t.type==='income'?'income':'expense');
+    $('fAmt').value=t.amount; $('fDesc').value=t.desc; $('fDate').value=t.date; if(t.cat) $('fCat').value=t.cat;
+    $('formTitle').textContent='Edit entry'; $('fSubmit').textContent='Save changes'; $('fCancel').hidden=false;
+    $('formCard').classList.add('editing'); render(); $('formCard').scrollIntoView({behavior:'smooth',block:'nearest'}); $('fAmt').focus();
+  } else if (dl){
+    if (S.readOnly) return;
+    const i=S.month.tx.findIndex(x=>x.id===dl.dataset.del); if(i<0) return;
+    const [t]=S.month.tx.splice(i,1); lastDeleted={t,month:S.monthKey};
+    if (S.editingId===t.id) resetForm();
+    saveMonth(); toast('Deleted "'+t.desc+'"', true);
+  }
+});
+$('cats').addEventListener('click', e=>{
+  const pb=e.target.closest('[data-paid]');
+  if (pb){
+    e.stopPropagation(); if (S.readOnly) return;
+    const c=catById(pb.dataset.paid); if(!c) return;
+    const d = monthKeyOf(todayStr())===S.monthKey ? todayStr() : S.monthKey+'-01';
+    S.month.tx.push({id:uid(),type:'expense',amount:r2(+c.budget),desc:c.name+' — paid in full',cat:c.id,date:d,ts:Date.now()});
+    saveMonth(); toast('Marked '+c.name+' paid ('+money(+c.budget,true)+')'); return;
+  }
+  const row=e.target.closest('[data-cat]'); if(!row) return;
+  S.filterCat = S.filterCat===row.dataset.cat ? null : row.dataset.cat;
+  if (S.filterCat && S.filterCat!=='__other') $('fCat').value=S.filterCat;
+  render();
+});
+$('search').addEventListener('input', e=>{ S.search=e.target.value; render(); });
+
+$('prevM').onclick=()=>{ S.monthKey=shiftMonth(S.monthKey,-1); afterMonthChange(); };
+$('nextM').onclick=()=>{ S.monthKey=shiftMonth(S.monthKey,1); afterMonthChange(); };
+function afterMonthChange(){
+  S.month={tx:[]}; S.filterCat=null; resetForm();
+  const now=todayStr(); $('fDate').value = monthKeyOf(now)===S.monthKey ? now : S.monthKey+'-01';
+  render(); subscribeMonth();
+}
+
+/* ---------------- settings ---------------- */
+let draft=null;
+function rowHtml(c){
+  return `<div class="crow" data-id="${esc(c.id)}">
+    <input data-k="name" value="${esc(c.name)}" placeholder="Name">
+    <input class="det" data-k="details" value="${esc(c.details||'')}" placeholder="Details (optional)">
+    <input data-k="budget" inputmode="decimal" value="${esc(c.budget)}">
+    <select class="pc" data-k="pay">${Object.entries(PAY_LABEL).map(([v,l])=>`<option value="${v}" ${c.pay===v?'selected':''}>${l}</option>`).join('')}</select>
+    <button data-rm title="Remove">✕</button></div>`;
+}
+function drawSettings(){
+  $('setRows').innerHTML = draft.cats.map(rowHtml).join('');
+  updSetTotal();
+}
+function readRows(){
+  draft.cats = [...$('setRows').querySelectorAll('.crow')].map(r=>({
+    id:r.dataset.id,
+    name:r.querySelector('[data-k=name]').value.trim(),
+    details:r.querySelector('[data-k=details]').value.trim(),
+    budget:r2(parseFloat(r.querySelector('[data-k=budget]').value)||0),
+    pay:r.querySelector('[data-k=pay]').value
+  }));
+}
+function updSetTotal(){
+  readRows();
+  const tb=draft.cats.reduce((a,c)=>a+c.budget,0);
+  const inc=(parseFloat($('setPay').value)||0)*(parseInt($('setPayN').value)||0);
+  $('setTotal').innerHTML = `Total budgeted: <b>${money(tb)}</b> · Expected income: <b>${money(inc)}</b> · ${inc-tb>=0?'Unassigned: <b>'+money(inc-tb)+'</b>':'<span class="neg">Over-budgeted by <b>'+money(tb-inc)+'</b></span>'}`;
+}
+$('openSettings').onclick=()=>{
+  draft=structuredClone(S.cfg); $('setPay').value=draft.paycheck; $('setPayN').value=draft.paychecksPerMonth;
+  drawSettings(); $('settings').showModal();
+};
+$('setRows').addEventListener('input', updSetTotal);
+$('setPay').addEventListener('input', updSetTotal); $('setPayN').addEventListener('input', updSetTotal);
+$('setRows').addEventListener('click', e=>{ if(e.target.closest('[data-rm]')){ e.target.closest('.crow').remove(); updSetTotal(); }});
+$('addCat').onclick=()=>{ readRows(); draft.cats.push({id:uid().slice(0,8),name:'',details:'',budget:0,pay:'both'}); drawSettings(); const ins=$('setRows').querySelectorAll('[data-k=name]'); ins[ins.length-1].focus(); };
+const closeSet=()=>$('settings').close();
+$('closeSettings').onclick=closeSet; $('cancelSettings').onclick=closeSet;
+$('saveSettings').onclick=()=>{
+  readRows();
+  draft.cats = draft.cats.filter(c=>c.name);
+  draft.paycheck = r2(parseFloat($('setPay').value)||0);
+  draft.paychecksPerMonth = parseInt($('setPayN').value)||0;
+  S.cfg = draft; closeSet(); render();
+  if (!S.readOnly) store.saveCfg(S.cfg);
+};
+
+$('doBackup').onclick=saveBackup;
+$('nagBackup').onclick=saveBackup;
+$('doRestore').onclick=()=>$('restoreFile').click();
+$('restoreFile').onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const err=restoreFrom(await f.text());
+  $('restoreErr').textContent = err||'';
+  if(!err) toast('Backup restored');
+};
+
+setType('expense');
+init();
+render();
+})();
+</script>
+</body>
+</html>
